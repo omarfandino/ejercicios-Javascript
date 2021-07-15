@@ -1,13 +1,14 @@
 import basededatos from './basededatos.js';
-
+const peliculas = basededatos.peliculas;
 
 /**
 * Devuelve el promedio de anios de estreno de todas las peliculas de la base de datos.
 */
 export const promedioAnioEstreno = () => {
     // Ejemplo de como accedo a datos dentro de la base de datos
-    // console.log(basededatos.peliculas);
-    return [];
+    const sumTotal = peliculas.reduce( (sumTotal, valorActual) => sumTotal + valorActual.anio, 0);
+    const promedio = sumTotal / peliculas.length;
+    return promedio;
 };
 
 /**
@@ -16,7 +17,22 @@ export const promedioAnioEstreno = () => {
 * @param {number} promedio
   */
 export const pelicuasConCriticaPromedioMayorA = (promedio) => {
-    return [];
+    const calificaciones = basededatos.calificaciones;
+
+    const pelisPromMayor = [];
+    peliculas.forEach( pelicula => {
+        const calificacionesPelicula  = calificaciones.filter( calificacion => calificacion.pelicula === pelicula.id );
+        const sumTotal = calificacionesPelicula.reduce( (sumTotal, valorActual) => sumTotal + valorActual.puntuacion, 0);
+        const promedioCalificacion = sumTotal / calificacionesPelicula.length;
+        if (promedioCalificacion > promedio) {
+            pelisPromMayor.push({
+                ...pelicula,
+                promedio: promedioCalificacion
+            });
+        }
+    });
+
+    return pelisPromMayor;
 };
 
 /**
@@ -24,7 +40,14 @@ export const pelicuasConCriticaPromedioMayorA = (promedio) => {
 * @param {string} nombreDirector
 */
 export const peliculasDeUnDirector = (nombreDirector) => {
-    return [];
+    const directorEncontrado = basededatos.directores.find( director => director.nombre === nombreDirector );
+    if (!directorEncontrado) {
+        return 'Director NO encontrada!';
+    }
+
+    const pelicularDeDirector = peliculas.filter( pelicula => pelicula.directores.includes( directorEncontrado.id ) );
+
+    return pelicularDeDirector;
 };
 
 /**
@@ -32,7 +55,17 @@ export const peliculasDeUnDirector = (nombreDirector) => {
 * @param {number} peliculaId
 */
 export const promedioDeCriticaBypeliculaId = (peliculaId) => {
-    return [];
+    const peliculaEncontrada = basededatos.peliculas.find( peliculas => peliculas.id === peliculaId );
+    if (!peliculaEncontrada) {
+        return 'Pelicula NO encontrada!';
+    }
+
+    const calificaciones = basededatos.calificaciones;
+    const calificacionesPelicula  = calificaciones.filter( calificacion => calificacion.pelicula === peliculaEncontrada.id );
+    const sumTotal = calificacionesPelicula.reduce( (sumTotal, valorActual) => sumTotal + valorActual.puntuacion, 0);
+    const promedioCalificacion = sumTotal / calificacionesPelicula.length;
+
+    return promedioCalificacion;
 };
 
 /**
@@ -69,8 +102,18 @@ export const promedioDeCriticaBypeliculaId = (peliculaId) => {
  */
 export const obtenerPeliculasConPuntuacionExcelente = () => {
     // Ejemplo de como accedo a datos dentro de la base de datos
-    // console.log(basededatos.peliculas);
-    return [];
+    const calificaciones = basededatos.calificaciones;
+
+    const pelisExcelente = [];
+    peliculas.forEach( pelicula => {
+        const calificacionesPelicula  = calificaciones.filter( calificacion => calificacion.pelicula === pelicula.id );
+        const esExcelente = calificacionesPelicula.some( calificacion => calificacion.puntuacion >= 9 );
+        if ( esExcelente ) {
+            pelisExcelente.push(pelicula);
+        }
+    });
+
+    return pelisExcelente;
 };
 
 /**
@@ -121,5 +164,45 @@ export const obtenerPeliculasConPuntuacionExcelente = () => {
  * @param {string} nombrePelicula
  */
 export const expandirInformacionPelicula = (nombrePelicula) => {
-    return {};
+    let peliculaEncontrada = peliculas.find( pelicula => pelicula.nombre === nombrePelicula );
+    if (!peliculaEncontrada) {
+        return undefined;
+    }
+
+    for (const property in peliculaEncontrada) {
+        if( Array.isArray(peliculaEncontrada[property]) ) {
+            const expandirInfo = peliculaEncontrada[property];
+            const infoExpandida = expandirInfo.map( idInfo => {
+                const infoEncontrada = basededatos[property].find( element => element.id === idInfo );
+                return infoEncontrada;
+            });
+
+            peliculaEncontrada = {
+                ...peliculaEncontrada,
+                [property]: infoExpandida
+            };
+
+        }
+    }
+
+    const calificaciones = basededatos.calificaciones;
+    const criticos = basededatos.criticos;
+    let calificacionesPelicula  = calificaciones.filter( calificacion => calificacion.pelicula === peliculaEncontrada.id );
+    calificacionesPelicula = calificacionesPelicula.map( calificacion => {
+        const infoCritico = criticos.find( critico => critico.id === calificacion.critico );
+
+        const peliConInfo = {
+            ...calificacion,
+            critico: infoCritico
+        };
+        delete peliConInfo.pelicula;
+
+        return peliConInfo;
+    });
+
+    peliculaEncontrada = {
+        ...peliculaEncontrada,
+        criticas: calificacionesPelicula
+    }
+    return peliculaEncontrada;
 };
